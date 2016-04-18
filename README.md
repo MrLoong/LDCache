@@ -1,1 +1,12 @@
-# LDCache
+一直都想写一个关于图片缓存方案的，但是积累不够，一直扔在这，但是今天开始尝试。就先从我写下载开始分享。
+
+## 下载
+
+下载的话，我查阅了很多人写的，像SDWebImage，使用的是NSURLConnection，但是我这里准备使用NSURLsession，使用NSURLSessionDataDelegate的代理方法实现下载数据.
+
+说点题外话：我为什么选择NSURLsession二部选择NSURLConnection。因为iOS９之前在做网络连接的时候,我们使用的时NSURLConnection,但是iOS9之后NSURLConnection宣布被弃用了,在2013年的WWDC大会上，苹果就已经设计出NSURLConnection的继任者NSURLSession，他使用起来比NSURLConnection更加简单，更加强大。
+
+在这个过程当中，还会用到GCD与NSOperation来管理下载线程，为什么混合使用呢？我们使用子类化NSOperation来高复抽象我们的下载线程进行抽象化，这样使我们的下载模块更加清晰，在整个不算太复杂的下载过程中，让接口变得简单。GDC我们在下载中局部会使用到，GCD的优点我们都知道，简单，易用，节省代码，使用block让代码变得更加简洁。
+
+
+基本上使用的东西上面都总结完了，开始进入下载的设计。
