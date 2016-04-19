@@ -39,9 +39,10 @@
 
 -(void)start{
     NSLog(@"start");
-   // self.progressBlock(1,1);
     
-//   self.cancelBlock();
+    if (self.isCancelled) {
+        return;
+    }
     
     /**
      * 创建NSURLSessionConfiguration类的对象, 这个对象被用于创建NSURLSession类的对象.
@@ -78,15 +79,26 @@
     [session finishTasksAndInvalidate];
     
 }
+
+
 -(void)cancel{
-    NSLog(@"结束");
+    
+    if (self.cancelBlock) {
+        NSLog(@"结束线程");
+        self.cancelBlock();
+        [self clear];
+    }
 }
 
-
+//最先调用，在这里做一些数据的初始化。
 -(void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveResponse:(NSURLResponse *)response completionHandler:(void (^)(NSURLSessionResponseDisposition))completionHandler{
     NSLog(@"开始");
     self.imageData = [[NSMutableData alloc] init];
     self.expectedContentLength = response.expectedContentLength;
+    
+    if (self.isCancelled) {
+        _imageData = nil;
+    }
     
     if (self.progressBlock) {
         self.progressBlock(0,self.expectedContentLength);
@@ -96,20 +108,40 @@
     
 }
 
+//下载响应
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask
     didReceiveData:(NSData *)data{
+    
     [self.imageData appendData:data];
     if (self.progressBlock) {
         self.progressBlock(self.imageData.length,self.expectedContentLength);
     }
-    NSLog(@"下载");
+    
     
 }
 
+//下载完成后调用
 -(void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didCompleteWithError:(NSError *)error{
+    if (!error) {
+        self.completedBlock(self.imageData,nil,nil,YES);
+        [self cancel];
+    }else{
+        self.completedBlock(self.imageData,nil,error,NO);
+        [self cancel];
+    }
     
-    self.completedBlock(self.imageData,nil,error,YES);
-    NSLog(@"下载完成");
+}
+
+/**
+ *  清空
+ */
+-(void)clear{
+    _request        = nil;
+    _cancelBlock    = nil;
+    _progressBlock  = nil;
+    _options        = 1;
+    _completedBlock = nil;
+    _expectedContentLength = 0;
 }
 
 

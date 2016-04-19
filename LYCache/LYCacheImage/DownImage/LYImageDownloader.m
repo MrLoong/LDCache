@@ -69,11 +69,11 @@
     
     [self addWithDownloaderProgressBlock:progressBlock DownloaderCompletedBlock:completedBlock URL:url DownloaderCreateBlock:^{
         
-        NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url cachePolicy: NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:20];
+        NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url cachePolicy: NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:30];
         
         operation = [[LYDownloaderOperation alloc] initWithRequest:request
                                                  DownloaderOptions:1
-                                           DownloaderProgressBlock:^(NSInteger AlreadyReceiveSize,NSInteger NotReceiveSize){
+                                           DownloaderProgressBlock:^(NSInteger alreadyReceiveSize,NSInteger expectedContentLength){
     
                                                __block NSArray *urlCallBacks;
                                                
@@ -84,15 +84,35 @@
                                                    dispatch_async(dispatch_get_main_queue(), ^{
                                                        DownloaderProgressBlock progress = callbacks[@"progress"];
                                                        if (progress) {
-                                                           progress(AlreadyReceiveSize,NotReceiveSize);
+                                                           progress(alreadyReceiveSize,expectedContentLength);
                                                        }
                                                    });
                                                }
                                            }
                                           DownloaderCompletedBlock:^(NSData *data,UIImage *image,NSError *error,BOOL finished){
-                                              completedBlock(data,image,error,finished);
+                                              __block NSArray *urlCallBacks;
+                                              dispatch_barrier_sync(myself.concurrentQueue, ^{
+                                                  urlCallBacks = [myself.downloaderCallBack[url] copy];
+                                                  if (finished) {
+                                                      [myself.downloaderCallBack removeObjectForKey:url];
+                                                  }
+                                              });
+                                              
+                                              for (NSDictionary *callBack in urlCallBacks) {
+                                                  dispatch_sync(self.concurrentQueue,^{
+                                                      DownloaderCompletedBlock completed = callBack[@"completed"];
+                                                      if (completed) {
+                                                          completed(data,image,error,finished);
+                                                      }
+                                                  });
+                                                  
+                                              }
                                           }
                                                          cancelled:^{
+                                                             dispatch_barrier_sync(myself.concurrentQueue, ^{
+                                                                 NSLog(@"取消操作");
+                                                                 [myself.downloaderCallBack removeObjectForKey:url];
+                                                             });
                                                              
                                                          }];
         [myself.downloadQueue addOperation:operation];
@@ -148,9 +168,5 @@
         }
     });
 }
-
-
-
-
 
 @end

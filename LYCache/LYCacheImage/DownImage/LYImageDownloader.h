@@ -12,15 +12,24 @@
 typedef NS_OPTIONS(NSInteger,DownloaderOptions) {
     
     //默认下载操作
-    DownloaderDefault = 1
+    DownloaderDefault = 1,
+    
+    //允许后台操作
+    DownloaderContinueInBackground = 2
 };
 
 typedef NS_ENUM(NSInteger,DownloaderOrder){
     
     //默认下载顺序，先进先出
-    DownloaderFIFO
+    DownloaderFIFO,
+    
+    //先进后出
+    DownloaderLIFO
 };
 
+/**
+ *  无参数block
+ */
 typedef void(^DownloaderCreateBlock)();
 
 /**
@@ -29,7 +38,7 @@ typedef void(^DownloaderCreateBlock)();
  *  @param AlreadyReceiveSize 已经接收大小
  *  @param NotReceiveSize     未接收大小
  */
-typedef void(^DownloaderProgressBlock)(NSInteger AlreadyReceiveSize,NSInteger NotReceiveSize);
+typedef void(^DownloaderProgressBlock)(NSInteger alreadyReceiveSize,NSInteger expectedContentLength);
 
 /**
  *  下载回调信息，完成下载Block
